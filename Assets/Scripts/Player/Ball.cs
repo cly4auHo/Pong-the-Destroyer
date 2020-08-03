@@ -1,51 +1,58 @@
-﻿using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Ball : MonoBehaviour
 {
-    public Action Hit;
     [Range(0, 500)]
     [SerializeField] private float speed;
     [SerializeField] private Rigidbody rigibody;
     private Vector3 velocity;
     private Vector3 startPosition;
+    private bool isFlying;
     private const string targetTag = "Target";
+    private const string enemyTag = "Enemy";
 
-    private void Awake()
+    private void Start()
     {
         startPosition = transform.position;
-        enabled = false;
-    }
-
-    private void FixedUpdate()
-    {
-        rigibody.AddForce(velocity);
     }
 
     private void OnCollisionEnter(Collision collision)
     {
-        if (collision.gameObject.tag.Equals(targetTag))
+        velocity = Vector3.Reflect(velocity, collision.transform.position.normalized);
+        Stop();
+        rigibody.AddForce(velocity, ForceMode.VelocityChange);
+        string tag = collision.gameObject.tag;
+
+        if (tag.Equals(enemyTag) || tag.Equals(targetTag))
         {
-            enabled = false;
-            Hit?.Invoke();
+            isFlying = false;
+            ReturnToPlayer();
         }
     }
 
     public void Move(Vector3 multipleSpeed)
     {
-        if (multipleSpeed.magnitude > 1)
-        {
-            velocity = speed * multipleSpeed;
-            enabled = true;
-        }
+        velocity = speed * multipleSpeed;
+        isFlying = true;
+        rigibody.AddForce(velocity, ForceMode.VelocityChange);
     }
 
-    public void Return()
+    public void ReturnToPlayer()
     {
-        if (!enabled)
-        {
-            rigibody.velocity = Vector3.zero;
-            transform.position = startPosition;
-        }
+        Stop();
+        rigibody.isKinematic = true;
+        transform.position = startPosition;
+        rigibody.isKinematic = false;
+    }
+
+    public bool IsFlying()
+    {
+        return isFlying;
+    }
+
+    private void Stop()
+    {
+        rigibody.velocity = Vector3.zero;
+        rigibody.angularVelocity = Vector3.zero;
     }
 }
